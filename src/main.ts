@@ -1,4 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder, TAbstractFile } from 'obsidian';
+import { generateBlogContent } from './blogContent';
+import { appIcon } from './icon/appicon';
 
 // Remember to rename these classes and interfaces!
 
@@ -14,12 +16,13 @@ export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
+		appIcon();
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+			this.openBlog();
 		});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
@@ -76,6 +79,17 @@ export default class MyPlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.app.workspace.on("file-menu", (menu, fileish: TAbstractFile) => {
+			if (fileish instanceof TFile && fileish.extension === "md") {
+				menu.addItem((item) => {
+					item.setTitle("Publish to github")
+						.setIcon("SpacedRepIcon")
+						.onClick(() => {
+							
+						});
+				});
+			}
+		})
 	}
 
 	onunload() {
@@ -88,6 +102,26 @@ export default class MyPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+	public async openBlog(): Promise<void> {
+		// const { inNewSplit = false, calendarSet } = opts ?? {};
+		const { workspace } = this.app;
+		// let file = this.cache.getPeriodicNote(
+		//   calendarSet ?? this.calendarSetManager.getActiveId(),
+		//   granularity,
+		//   date
+		// );
+		// if (!file) {
+		//   file = await this.createPeriodicNote(granularity, date);
+		// }
+		const filePath = "blog/" + Math.random().toString(36).substring(7) + ".md";
+		let file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
+		if (file == null) {
+			file = await this.app.vault.create(filePath, generateBlogContent());
+		}
+		const leaf = workspace.getUnpinnedLeaf();
+		
+		await leaf.openFile(file, { active: true });
 	}
 }
 
