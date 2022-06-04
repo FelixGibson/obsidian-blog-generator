@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder, TAbstractFile } from 'obsidian';
-import { generateBlogContent } from './blogContent';
+import { generateBlogContent, generateTitle } from './blogContent';
 import { appIcon } from './icon/appicon';
 
 // Remember to rename these classes and interfaces!
@@ -85,7 +85,7 @@ export default class MyPlugin extends Plugin {
 					item.setTitle("Publish to github")
 						.setIcon("SpacedRepIcon")
 						.onClick(() => {
-							
+
 						});
 				});
 			}
@@ -114,14 +114,36 @@ export default class MyPlugin extends Plugin {
 		// if (!file) {
 		//   file = await this.createPeriodicNote(granularity, date);
 		// }
-		const filePath = "blog/" + Math.random().toString(36).substring(7) + ".md";
+		//get current date in YYYY-MM-DD format
+		const date = new Date().toISOString().split("T")[0];
+		const filePath = "blog/" + date + ".md";
 		let file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
 		if (file == null) {
-			file = await this.app.vault.create(filePath, generateBlogContent());
+			const [title, content] = await generateBlogContent(this.app);
+
+			const config = `---\ntitle: "${title}"\n---\n\n`;
+
+			file = await this.app.vault.create(filePath, config + content);
+			const leaf = workspace.getUnpinnedLeaf();
+			await leaf.openFile(file, { active: true });
+		} else {
+			const [title, content] = await generateBlogContent(this.app);
+			const fileText: string = await this.app.vault.read(file);
+			// //search using regexp
+			// let preTitle = '';
+			// if ((/(?<=\ntitle: ").*(?="\n)/.exec(fileText)) !== null) {
+			// 	title = generateTitle(preTitle[0], title);
+			// }
+			
+			if (content.length) {
+				await this.app.vault.modify(file, fileText + "\n" + content);
+			}
+			const leaf = workspace.getUnpinnedLeaf();
+			await leaf.openFile(file, { active: true });
+
+			
 		}
-		const leaf = workspace.getUnpinnedLeaf();
 		
-		await leaf.openFile(file, { active: true });
 	}
 }
 
