@@ -121,7 +121,13 @@ export default class MyPlugin extends Plugin {
 		if (file == null) {
 			const [title, content] = await generateBlogContent(this.app);
 
-			const config = `---\ntitle: "${title}"\n---\n\n`;
+			//date and time format: YYYY-MM-DD HH:MM and hour need to be 24-hour format
+			const date = new Date().toISOString().split("T")[0];
+			let time = new Date().toISOString().split("T")[1].split(".")[0];
+			// do not need seconds
+			time = time.split(":")[0] + ":" + time.split(":")[1];
+
+			const config = `---\ntitle: "${title}"\ndate: ${date} ${time}\n---\n\n`;
 
 			file = await this.app.vault.create(filePath, config + content);
 			const leaf = workspace.getUnpinnedLeaf();
