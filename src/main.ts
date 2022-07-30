@@ -36,7 +36,7 @@ export default class MyPlugin extends Plugin {
 			id: 'open-sample-modal-simple',
 			name: 'Open sample modal (simple)',
 			callback: () => {
-				new SampleModal(this.app).open();
+				this.openBlog();
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -119,7 +119,8 @@ export default class MyPlugin extends Plugin {
 		const filePath = "blog/" + date + ".md";
 		let file = this.app.vault.getAbstractFileByPath(filePath) as TFile;
 		if (file == null) {
-			const [title, content] = await generateBlogContent(this.app);
+			const [titleArray, content] = await generateBlogContent(this.app);
+			const title = generateTitle(titleArray);
 
 			//date and time format: YYYY-MM-DD HH:MM and hour need to be 24-hour format
 			const date = new Date().toISOString().split("T")[0];
@@ -133,17 +134,12 @@ export default class MyPlugin extends Plugin {
 			const leaf = workspace.getUnpinnedLeaf();
 			await leaf.openFile(file, { active: true });
 		} else {
-			const [title, content] = await generateBlogContent(this.app);
-			const fileText: string = await this.app.vault.read(file);
-			// //search using regexp
-			// let preTitle = '';
-			// if ((/(?<=\ntitle: ").*(?="\n)/.exec(fileText)) !== null) {
-			// 	title = generateTitle(preTitle[0], title);
-			// }
-			
-			if (content.length) {
-				await this.app.vault.modify(file, fileText + "\n" + content);
-			}
+			let [titleArray, content] = await generateBlogContent(this.app);
+			let fileText: string = await this.app.vault.read(file);
+			const preTitles = fileText.match(/(?<=### ).+$/gm);
+			titleArray = [...preTitles, ...titleArray];
+			fileText = fileText.replace(/(?<=title: )".+"$/gm, "\"" + generateTitle(titleArray) + "\"");
+			await this.app.vault.modify(file, fileText + "\n" + content);
 			const leaf = workspace.getUnpinnedLeaf();
 			await leaf.openFile(file, { active: true });
 

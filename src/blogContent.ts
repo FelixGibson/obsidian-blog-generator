@@ -46,7 +46,7 @@ async function replaceTag(files: TFile[], app: App) {
   }
 }
 
-export async function generateBlogContent(app: App): Promise<[string, string]> {
+export async function generateBlogContent(app: App): Promise<[string[], string]> {
 	//iterate array
 	const files: TFile[] = app.vault.getMarkdownFiles();
 	//An array of [CardType, card text, line number, file path] tuples
@@ -71,6 +71,16 @@ export async function generateBlogContent(app: App): Promise<[string, string]> {
 					newText = newText.replaceAll(multilineRegex, '');
 					newText = newText.replaceAll(/^[\t ]*- /gm, '');
 					newText = newText.replaceAll(/(?<=^)/gm, '>');
+					//extract regex
+					const reg = /(?<=\s)ps.[\S ]+$/gm;
+					const mainContent = newText.match(reg);
+					if (mainContent) {
+						newText = newText.replaceAll(reg, '');
+						let tmp = mainContent[0];
+						tmp = tmp.replaceAll("ps.", "");
+						newText = tmp + "\n" + newText;
+					}
+
 					//get file title and remove suffix
 					const title = file.path.split('/').pop().replace('.md', '');
 					if (title !== preTitle) {
@@ -87,7 +97,8 @@ export async function generateBlogContent(app: App): Promise<[string, string]> {
 	}
 	const allFiles = [...new Set(card.map(x => x[3]))];
 	await replaceTag(allFiles, app);
-	return [generateTitle(titleArray), blogContent];
+
+	return [titleArray, blogContent];
 }
 
 export function generateTitle(titleArray: string[]) {
